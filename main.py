@@ -1,221 +1,280 @@
+import random
 import pygame
-import math
-import os
-
-pygame.init()
-
-SCREEN_WIDTH = 1024
-SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
-
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Dino Survivors')
-
-# framerate
-clock = pygame.time.Clock()
-FPS = 60
+from button import Button
+from enemy import Enemy
+from player import Player
+from wall import Wall
+from map import Map
+from os import path
 
 
-# variables de movimiento
-moving_left = False
-moving_right = False
-moving_up = False
-moving_down = False
+class Game:
+    def __init__(self):
+        pygame.init()
 
-# cargar imagenes
-bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
+        # inicializacion de pantalla
+        self.SCREEN_WIDTH = 1024
+        self.SCREEN_HEIGHT = int(self.SCREEN_WIDTH * 0.8)
+        self.SCROLL_THRESH = 350
 
-# colores
+        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
+        pygame.display.set_caption("Dino Survivors")
 
-BG=(144,201,120)
+        # imagenes
+        self.bullet_img = pygame.image.load("img/icons/bullet.png").convert_alpha()
+        self.start_img = pygame.image.load("img/buttons/start.png").convert_alpha()
+        self.continue_img = pygame.image.load("img/buttons/continue.png").convert_alpha()
+        self.exit_img = pygame.image.load("img/buttons/exit.png").convert_alpha()
+        self.board_img = pygame.image.load("img/buttons/board.png").convert_alpha()
+        self.dmg_img = pygame.image.load("img/buttons/dmg.png").convert_alpha()
+        self.speed_img = pygame.image.load("img/buttons/speed.png").convert_alpha()
 
-def draw_bg():
-    screen.fill(BG)
+        # fuente
+        self.font = pygame.font.Font('freesansbold.ttf', 16)
+
+        # layers
+        self.WALL_LAYER = 3
+        self.MOB_LAYER = 2
+        self.OBJ_LAYER = 1
+        self.GROUND_LAYER = 0
+
+        # framerate
+        self.clock = pygame.time.Clock()
+        self.FPS = 60
+
+        # botones
+        self.start_button = Button(
+            self.SCREEN_WIDTH // 2 - 215,
+            self.SCREEN_HEIGHT // 2 - 250,
+            self.start_img,
+            0.5,
+        )
+        self.exit_button = Button(
+            self.SCREEN_WIDTH // 2 - 215,
+            self.SCREEN_HEIGHT // 2 + 100,
+            self.exit_img,
+            0.5,
+        )
+
+        self.continue_button = Button(
+            self.SCREEN_WIDTH // 2 - 215,
+            self.SCREEN_HEIGHT // 2 - 250,
+            self.continue_img,
+            0.5,
+        )
+
+        self.board_button = Button(
+            0,
+            0,
+            self.board_img,
+            10,
+        )
+
+        self.dmg_button = Button(
+            self.SCREEN_WIDTH // 2 - 215,
+            self.SCREEN_HEIGHT // 2 - 250,
+            self.dmg_img,
+            0.5,
+        )
+        self.speed_button = Button(
+            self.SCREEN_WIDTH // 2 - 215,
+            self.SCREEN_HEIGHT // 2 + 100,
+            self.speed_img,
+            0.5,
+        )
+
+        # colores
+        self.BG = (144, 201, 120)
+        self.RED = (255, 0, 0)
+
+    def load(self):  # variables de juego
+        self.spawn_cd = 1000
+        self.spawn_time = pygame.time.get_ticks()
+        self.ss_x = 0  # screen_scroll x
+        self.ss_y = 0  #      ""       y
+        self.bg_scroll = 0
+        self.start_game = False
+        self.pause_game = False
+
+        # variables de movimiento
+        self.moving_left = False
+        self.moving_right = False
+        self.moving_up = False
+        self.moving_down = False
+
+        # grupos
+        self.all_sprites = pygame.sprite.Group()
+        self.bullet_group = pygame.sprite.Group()
+        self.enemy_group = pygame.sprite.Group()
+        self.wall_group = pygame.sprite.Group()
+        self.player_group = pygame.sprite.Group()
+        self.obj_group = pygame.sprite.Group()
+
+        # map
+        self.TILESIZE = 64
+        game_dir = path.dirname(__file__)
+        self.map = Map(path.join(game_dir, "map.txt"))
+
+        X_OFFSET = -20
+        Y_OFFSET = -10
+
+        for i, row in enumerate(self.map.data):
+            for j, column in enumerate(row):
+                if column == "*":
+                    Wall(self, j + X_OFFSET, i + Y_OFFSET)
+
+        # player
+
+        self.player = Player(
+            char_type="player",
+            x=self.SCREEN_WIDTH / 2,
+            y=self.SCREEN_HEIGHT / 2,
+            scale=3,
+            speed=3,
+            animation_types=["idle", "moving"],
+            groups=(self.all_sprites, self.player_group),
+            game=self,
+            damage=25,
+        )
+
+    def draw_bg(self):
+        self.screen.fill(self.BG)
+
+    def run(self):
+        self.load()
+
+        run = True
+        while run:
+            self.clock.tick(self.FPS)
+
+            # menú principal
+            if not self.start_game:
+                self.screen.fill((100, 100, 100))
+                if self.start_button.draw(self.screen):
+                    self.load()
+                    self.start_game = True
+                if self.exit_button.draw(self.screen):
+                    run = False
+
+            # pausa
+            elif self.pause_game:
+                if self.continue_button.draw(self.screen):
+                    self.pause_game = False
+                if self.exit_button.draw(self.screen):
+                    run = False
+
+            # levelup
+            elif self.player.leveling_up:
+                self.screen.fill(self.BG)
+                dmgtext = self.font.render(f"Damage : {self.player.damage}", True, (255,255,255), (0,0,0))
+                speedtext = self.font.render(f"Shooting Cooldown : {self.player.shooting_cd}", True, (255,255,255), (0,0,0))
+                dmgrect = dmgtext.get_rect()
+                speedrect = speedtext.get_rect()
+                dmgrect.center = (self.SCREEN_WIDTH // 5, self.SCREEN_HEIGHT // 3)
+                speedrect.center = (self.SCREEN_WIDTH // 5, self.SCREEN_HEIGHT // 4)
+                self.screen.blit(dmgtext, dmgrect)
+                self.screen.blit(speedtext, speedrect)
 
 
-class Mob(pygame.sprite.Sprite):
-    def __init__(self, char_type, x, y, scale, speed, animation_types):
-        pygame.sprite.Sprite.__init__(self)
-        self.char_type = char_type
-        self.alive = True
-        self.max_hp = 100
-        self.hp = self.max_hp
-        self.armor = 0
-        self.speed = speed
-        self.direction = 1
-        self.shooting_direction = (0,0)
-        self.flip = False
-        self.animation_list = []
-        self.frame_index = 0
-        self.frame_mod = 0
-        self.action = 0 # 0 = idle, 1 = moving
-        self.update_animation_time = pygame.time.get_ticks()
-        self.update_shooting_time = pygame.time.get_ticks()
+                if self.dmg_button.draw(self.screen):
+                    self.player.damage += 15
+                    self.player.leveling_up = False
+                elif self.speed_button.draw(self.screen):
+                    self.player.shooting_cd -= 100
+                    self.player.leveling_up = False
+
+            else:
+                self.draw_bg()
+
+                # spawn enemigo
+
+                if pygame.time.get_ticks() - self.spawn_time > self.spawn_cd:
+                    self.spawn_time = pygame.time.get_ticks()
+                    enemy = Enemy(
+                        char_type="enemy",
+                        x=random.choice(
+                            [random.randrange(-600, -200), random.randrange(1000, 1200)]
+                        ),
+                        y=random.choice(
+                            [random.randrange(-600, -200), random.randrange(600, 1200)]
+                        ),
+                        scale=2,
+                        speed=1,
+                        animation_types=["moving"],
+                        groups=(self.all_sprites, self.enemy_group),
+                        game=self,
+                    )
+                    while pygame.sprite.spritecollide(enemy, self.wall_group, False):
+                        enemy.rect.centerx = random.choice(
+                            [random.randrange(-200, -190), random.randrange(190, 200)]
+                        )
+                        enemy.rect.centery = random.choice(
+                            [random.randrange(-200, -190), random.randrange(190, 200)]
+                        )
+
+                self.player.update(self.screen)
+                self.enemy_group.update(self)
+
+                # update and draw groups
+                self.bullet_group.update()
+                self.bullet_group.draw(self.screen)
+
+                self.wall_group.update()
+                self.wall_group.draw(self.screen)
+
+                self.obj_group.update()
+                self.obj_group.draw(self.screen)
+
+                # update player actions
+                if self.player.alive:
+                    self.player.shoot(game=self)
+
+                    if (
+                        self.moving_left
+                        or self.moving_right
+                        or self.moving_up
+                        or self.moving_down
+                    ):
+                        self.player.update_action(1)
+                    else:
+                        self.player.update_action(0)
+
+                    self.ss_x, self.ss_y = self.player.move(game)
+
+            for event in pygame.event.get():
+                # Cerrar el juego
+                if event.type == pygame.QUIT:
+                    run = False
+
+                # KEYDOWN
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.pause_game = True
+                    if event.key == pygame.K_a or event.key == pygame.K_LEFT:
+                        self.moving_left = True
+                    if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
+                        self.moving_right = True
+                    if event.key == pygame.K_a or event.key == pygame.K_UP:
+                        self.moving_up = True
+                    if event.key == pygame.K_a or event.key == pygame.K_DOWN:
+                        self.moving_down = True
+
+                # KEYUP
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a or event.key == pygame.K_LEFT:
+                        self.moving_left = False
+                    if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
+                        self.moving_right = False
+                    if event.key == pygame.K_a or event.key == pygame.K_UP:
+                        self.moving_up = False
+                    if event.key == pygame.K_a or event.key == pygame.K_DOWN:
+                        self.moving_down = False
+
+            pygame.display.update()
+
+        pygame.quit()
 
 
-        for animation in animation_types:
-            temp_list = []
-            num_of_frames = len(os.listdir(f'img/{self.char_type}/{animation}'))
-            for i in range(num_of_frames):
-                img = pygame.image.load(f'img/{self.char_type}/{animation}/{i}.png').convert_alpha()
-                img = pygame.transform.scale(img, (img.get_width() * scale, img.get_height() * scale))
-                temp_list.append(img)
-            self.animation_list.append(temp_list)
+game = Game()
 
-        self.image = self.animation_list[self.action][self.frame_index]
-        self.rect = img.get_rect()
-        self.rect.center = (x, y)
-
-
-    def move(self, moving_left, moving_right, moving_up, moving_down):
-        #update rectangle pos
-        move = pygame.math.Vector2(moving_right - moving_left, moving_down - moving_up)
-        if move.length_squared() > 0:
-            move.scale_to_length(self.speed)
-            self.rect.move_ip(round(move.x), round(move.y))
-
-    def shoot(self):
-        if self.char_type == 'player':
-            self.shooting_cooldown = 100
-            if pygame.time.get_ticks() - self.update_shooting_time > self.shooting_cooldown:
-                pos = pygame.math.Vector2(self.rect.x, self.rect.y)
-                closest_enemy = min([e for e in enemy_group.sprites()], key=lambda e: pos.distance_to(pygame.math.Vector2(e.rect.x, e.rect.y)))
-                self.update_shooting_time = pygame.time.get_ticks()
-                bullet = Bullet(x=self.rect.centerx, y=self.rect.centery, target=closest_enemy.rect.center, speed=4)
-                bullet_group.add(bullet)
-
-    def update_animation(self):
-        self.animation_cooldown = 300
-        if pygame.time.get_ticks() - self.update_animation_time > self.animation_cooldown:
-            self.update_animation_time = pygame.time.get_ticks()
-            if self.frame_index + self.frame_mod > len(self.animation_list[self.action])-1 or self.frame_index + self.frame_mod < 0:
-                self.frame_mod = -self.frame_mod
-            self.frame_index += self.frame_mod
-        self.image = self.animation_list[self.action][self.frame_index]
-        if self.frame_mod == 0:
-            self.frame_mod = 1
-
-    def update_action(self, new_action):
-        #si nueva accion es diferente a la anterior
-        if new_action != self.action:
-            self.action = new_action
-        screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
-    def update(self, player):
-        self.update_animation()
-        chase_left = False
-        chase_right = False
-        chase_up = False
-        chase_down = False
-        if player.rect.centerx > self.rect.centerx:
-            chase_left = True
-        elif player.rect.centerx < self.rect.centerx:
-            chase_right = True
-        if player.rect.centery < self.rect.centery:
-            chase_up = True
-        elif player.rect.centery > self.rect.centery:
-            chase_down = True
-
-        move = pygame.math.Vector2(chase_left - chase_right, chase_down - chase_up)
-        if move.length_squared() > 0:
-            move.scale_to_length(self.speed)
-            self.rect.move_ip(round(move.x), round(move.y))
-
-
-    def draw(self):
-        screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
-class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, target, speed):
-        pygame.sprite.Sprite.__init__(self)
-        self.speed = speed
-        self.image = bullet_img
-        self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
-        self.target = target
-        self.angle = math.atan2(target[1] - self.rect.y, target[0] - self.rect.x)
-        self.rotation = int(self.angle * 180 / math.pi)
-        self.dx = math.cos(self.angle) * self.speed
-        self.dy = math.sin(self.angle) * self.speed
-
-
-    def update(self):
-        self.rect.x += self.dx
-        self.rect.y += self.dy
-
-        #si salio de la pantalla
-        if self.rect.right < -SCREEN_WIDTH * 0.1 or self.rect.left > SCREEN_WIDTH * 1.1:
-            self.kill()
-
-
-# grupos
-bullet_group = pygame.sprite.Group()
-enemy_group = pygame.sprite.Group()
-
-player = Mob(char_type='player', x=200, y=200, scale=3, speed=3, animation_types = ['idle', 'moving'])
-enemy = Mob(char_type='player', x=400, y=400, scale=2, speed=1, animation_types=['moving'])
-enemy2 = Mob(char_type='player', x=700, y=700, scale=2, speed=1, animation_types=['moving'])
-
-enemy_group.add(enemy)
-enemy_group.add(enemy2)
-
-
-run = True
-while run:
-    clock.tick(FPS)
-    if moving_left or moving_right or moving_up or moving_down:
-            player.update_action(1)
-    else:
-            player.update_action(0)
-    draw_bg()
-
-    player.draw()
-    enemy_group.update(player)
-    enemy_group.draw(screen)
-
-    #update and draw groups
-    bullet_group.update()
-    bullet_group.draw(screen)
-
-    #update player actions
-    if player.alive:
-        player.shoot()
-
-        if moving_left or moving_right or moving_up or moving_down:
-            player.update_action(1)
-        else:
-            player.update_action(0)
-        player.move(moving_left, moving_right, moving_up, moving_down)
-
-    for event in pygame.event.get():
-
-        # Cerrar el juego
-        if event.type == pygame.QUIT:
-            run = False<3
-
-        # KEYDOWN
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                run = False
-            if event.key == pygame.K_a or event.key == pygame.K_LEFT:
-                moving_left = True
-            if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
-                moving_right = True
-            if event.key == pygame.K_a or event.key == pygame.K_UP:
-                moving_up = True
-            if event.key == pygame.K_a or event.key == pygame.K_DOWN:
-                moving_down = True
-
-        # KEYUP
-        if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a or event.key == pygame.K_LEFT:
-                moving_left = False
-            if event.key == pygame.K_d or event.key == pygame.K_RIGHT:
-                moving_right = False
-            if event.key == pygame.K_a or event.key == pygame.K_UP:
-                moving_up = False
-            if event.key == pygame.K_a or event.key == pygame.K_DOWN:
-                moving_down = False
-
-    pygame.display.update()
-
-pygame.quit()
+game.run()
