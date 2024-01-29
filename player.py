@@ -4,7 +4,9 @@ import pygame
 
 
 class Player(Mob):
-    def __init__(self, char_type, x, y, scale, speed, animation_types, groups, game, damage):
+    def __init__(
+        self, char_type, x, y, scale, speed, animation_types, groups, game, damage
+    ):
         super().__init__(char_type, x, y, scale, speed, animation_types, groups, game)
         self.xp = 0
         self.xp_levelup = 100
@@ -34,13 +36,10 @@ class Player(Mob):
                     speed=4,
                     bullet_img=game.bullet_img,
                     game=game,
-                    damage=self.damage
+                    damage=self.damage,
                 )
 
     def move(self, game):
-        # scroll
-        screen_scroll = 0
-
         # direction
         if game.moving_left:
             self.direction = -1
@@ -52,29 +51,24 @@ class Player(Mob):
         move = pygame.math.Vector2(
             game.moving_right - game.moving_left, game.moving_down - game.moving_up
         )
-        if move.length_squared() > 0:
-            move.scale_to_length(self.speed)
-            self.rect.move_ip(round(move.x), round(move.y))
-
-        if pygame.sprite.spritecollide(self, game.wall_group, False):
-            self.rect.move_ip(round(-move.x), round(-move.y))
 
         ss_x = 0
         ss_y = 0
 
-        # update scroll
-        if (
-            self.rect.right > game.SCREEN_WIDTH - game.SCROLL_THRESH
-            or self.rect.left < game.SCROLL_THRESH
-        ):
-            self.rect.move_ip(round(-move.x), 0)
-            ss_x = -move.x
-        if (
-            self.rect.top < game.SCROLL_THRESH
-            or self.rect.bottom > game.SCREEN_HEIGHT - game.SCROLL_THRESH
-        ):
-            self.rect.move_ip(0, round(-move.y))
-            ss_y = -move.y
+        if move.length_squared() > 0:
+            move.scale_to_length(self.speed)
+            sim_move = self.rect.move(round(move.x), round(move.y))
+
+            ss_x = self.rect.x - sim_move.x
+            ss_y = self.rect.y - sim_move.y
+
+            for wall in game.wall_group:
+                if sim_move.colliderect(wall.rect):
+                    ss_x = 0
+                    ss_y = 0
+
+            game.bg_scroll_x -= ss_x
+            game.bg_scroll_y += ss_y
 
         return (ss_x, ss_y)
 
@@ -94,14 +88,29 @@ class Player(Mob):
         if self.hp != self.max_hp:
             pygame.draw.rect(
                 screen,
+                (0, 0, 0),
+                (self.rect.centerx - self.hp / 2 - 2, self.rect.bottom + 3, self.hp + 4, 12),
+            )  # borde vida
+            pygame.draw.rect(
+                screen,
                 (255, 0, 0),
                 (self.rect.centerx - self.hp / 2, self.rect.bottom + 5, self.hp, 8),
-            )  # TODO: color
+            )  # vida
         pygame.draw.rect(
-                screen,
-                (0, 0, 255),
-                (10, 10, self.xp, 16),
-            )  # TODO: color
+            screen,
+            (0, 0, 0),
+            (10-2, 10-2, self.xp_levelup+4, 20),
+        )  # borde XP maxima
+        pygame.draw.rect(
+            screen,
+            (90, 90, 255),
+            (10, 10, self.xp_levelup, 16),
+        )  # XP maxima
+        pygame.draw.rect(
+            screen,
+            (0, 0, 200),
+            (10, 10, self.xp_levelup * self.xp / self.xp_levelup, 16),
+        )  # XP actual
 
     def update(self, screen):
         super().update(screen)

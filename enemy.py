@@ -1,6 +1,9 @@
 from mob import Mob
 import pygame
+import math
 
+
+#TODO: volver a jugar, volver al menu cuando perdes/ganas
 
 class Enemy(Mob):
     def __init__(self, char_type, x, y, scale, speed, animation_types, groups, game):
@@ -9,31 +12,48 @@ class Enemy(Mob):
         self.damage_time = pygame.time.get_ticks()
         self.damage = 2
 
+        if self.char_type == "strongie":
+            self.max_hp = 200
+            self.hp = self.max_hp
+            self.damage = 5
+
     def update(self, game):
         super().update(game.screen)
-        chase_left = False
-        chase_right = False
-        chase_up = False
-        chase_down = False
-        if game.player.rect.centerx < self.rect.centerx:
-            chase_left = True
-            self.flip = True
-        elif game.player.rect.centerx > self.rect.centerx:
-            chase_right = True
-            self.flip = False
-        if game.player.rect.centery < self.rect.centery:
-            chase_up = True
-        elif game.player.rect.centery > self.rect.centery:
-            chase_down = True
+        self.target = game.player.rect.center
+        self.angle = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+        self.rotation = int(self.angle * 180 / math.pi)
+        self.dx = math.cos(self.angle) * self.speed
+        self.dy = math.sin(self.angle) * self.speed
 
-        move = pygame.math.Vector2(chase_right - chase_left, chase_down - chase_up)
+        move = pygame.math.Vector2(self.dx, self.dy)
+
         if move.length_squared() > 0:
             move.scale_to_length(self.speed)
-            self.rect.move_ip(round(move.x + game.ss_x), round(move.y + game.ss_y))
+            sim_move_x = self.rect.move(round(move.x), 0)
+            sim_move_y = self.rect.move(0, round(move.y))
+            x_move_valid = True
+            y_move_valid = True
 
-        # si choca contra una pared, se cancela el movimiento
-        if pygame.sprite.spritecollide(self, game.wall_group, False):
-            self.rect.move_ip(round(-move.x * 4), round(-move.y * 2))
+            # si choca contra una pared, se cancela el movimiento
+            if pygame.sprite.spritecollide(self, game.wall_group, False):
+                for wall in game.wall_group:
+                    if wall.rect.colliderect(sim_move_x):
+                        x_move_valid = False
+                    if wall.rect.colliderect(sim_move_y):
+                        y_move_valid = False
+
+            if x_move_valid:
+                self.rect.move_ip(round(move.x), 0)
+                if self.dx > 0:
+                    self.flip = False
+                else:
+                    self.flip = True
+
+            if y_move_valid:
+                self.rect.move_ip(0, round(move.y))
+
+            self.rect.move_ip(round(game.ss_x), round(game.ss_y))
+
 
         # si toca al jugador
         if pygame.sprite.spritecollide(self, game.player_group, False):
@@ -41,4 +61,3 @@ class Enemy(Mob):
             if pygame.time.get_ticks() - self.damage_time > self.damage_cd:
                 self.damage_time = pygame.time.get_ticks()
                 game.player.hp -= self.damage
-                print(game.player.hp)

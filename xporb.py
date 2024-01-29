@@ -7,7 +7,7 @@ class XPOrb(Pickup):
         super().__init__(game, image, x, y)
 
     def pickup(self):
-        self.game.player.xp += 40
+        self.game.player.xp += 20
         self.kill()
 
     def update(self):

@@ -40,7 +40,10 @@ class Mob(pygame.sprite.Sprite):
 
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = img.get_rect()
-        self.rect.center = (x, y)
+        self.rect.x = x
+        self.rect.y = y
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
 
     def update_animation(self):
         self.animation_cooldown = 300
