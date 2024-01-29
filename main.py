@@ -21,28 +21,30 @@ class Game:
         pygame.display.set_caption("Dino Survivors")
 
         # imagenes
-
+        self.xporb_img = pygame.image.load(f"img/icons/xp.png").convert_alpha()
+        self.xporb2_img = pygame.image.load(f"img/icons/xp2.png").convert_alpha()
         self.bullet_img = pygame.image.load("img/icons/bullet.png").convert_alpha()
-
         self.shooting_cd_img = pygame.image.load("img/buttons/cadencia.png").convert_alpha()
         self.start_img = pygame.image.load("img/buttons/empezar.png").convert_alpha()
         self.continue_img = pygame.image.load("img/buttons/continuar.png").convert_alpha()
         self.damage_img = pygame.image.load("img/buttons/daño.png").convert_alpha()
         self.menu_img = pygame.image.load("img/buttons/fondo.png").convert_alpha()
-        self.menu_img = pygame.transform.scale(
-            self.menu_img, (self.menu_img.get_width() * 1.15, self.menu_img.get_height() * 1.15)
-        )
+        self.menu_img = pygame.transform.scale(self.menu_img, (self.menu_img.get_width() * 1.15, self.menu_img.get_height() * 1.15))
+        self.won_img = pygame.image.load("img/buttons/ganaste.png").convert_alpha()
+        self.won_img = pygame.transform.scale(self.won_img, (self.won_img.get_width() * 1.15, self.won_img.get_height() * 1.15))
+        self.levelup_img = pygame.image.load("img/buttons/levelup.png").convert_alpha()
+        self.levelup_img = pygame.transform.scale(self.levelup_img, (self.levelup_img.get_width() * 1.15, self.levelup_img.get_height() * 1.15))
         self.map_img = pygame.image.load("img/map/map.png").convert_alpha()
-        self.map_img = pygame.transform.scale(
-            self.map_img, (self.map_img.get_width() * 4, self.map_img.get_height() * 4)
-        )
+        self.map_img = pygame.transform.scale(self.map_img, (self.map_img.get_width() * 4, self.map_img.get_height() * 4))
+        self.lost_img = pygame.image.load("img/buttons/perdiste.png").convert_alpha()
+        self.lost_img = pygame.transform.scale(self.lost_img, (self.lost_img.get_width() * 1.15, self.lost_img.get_height() * 1.15))
         self.exit_img = pygame.image.load("img/buttons/salir.png").convert_alpha()
         self.play_again_img = pygame.image.load("img/buttons/volver a jugar.png").convert_alpha()
         self.go_back_img = pygame.image.load("img/buttons/volver al menu.png").convert_alpha()
 
 
         # fuente
-        self.font = pygame.font.Font("freesansbold.ttf", 16)
+        self.font = pygame.font.Font("freesansbold.ttf", 22)
 
         # layers
         self.WALL_LAYER = 3
@@ -61,10 +63,18 @@ class Game:
             self.start_img,
             1,
         )
+
         self.exit_button = Button(
             self.SCREEN_WIDTH // 2 - 80,
             self.SCREEN_HEIGHT // 2 + 200,
             self.exit_img,
+            1,
+        )
+
+        self.go_back_button = Button(
+            self.SCREEN_WIDTH // 2 - 80,
+            self.SCREEN_HEIGHT // 2 + 200,
+            self.go_back_img,
             1,
         )
 
@@ -75,17 +85,24 @@ class Game:
             1,
         )
 
+        self.play_again_button = Button(
+            self.SCREEN_WIDTH // 2 - 80,
+            self.SCREEN_HEIGHT // 2 + 75,
+            self.play_again_img,
+            1,
+        )
+
         self.damage_button = Button(
-            self.SCREEN_WIDTH // 2,
-            self.SCREEN_HEIGHT // 20,
+            self.SCREEN_WIDTH * 0.19,
+            self.SCREEN_HEIGHT  * 0.21,
             self.damage_img,
-            0.5,
+            1,
         )
         self.shooting_cd_button = Button(
-            self.SCREEN_WIDTH // 2 - 215,
-            self.SCREEN_HEIGHT // 2 + 100,
+            self.SCREEN_WIDTH * 0.19,
+            self.SCREEN_HEIGHT * 0.66,
             self.shooting_cd_img,
-            0.5,
+            1,
         )
 
         # colores
@@ -103,6 +120,8 @@ class Game:
         self.spawn_time = pygame.time.get_ticks()
         self.strongie_spawn_time = pygame.time.get_ticks()
         self.spawn_strongies = False
+        self.xporb_value = 20
+        self.xporb2_value = 50
         self.ss_x = 0  # screen_scroll x
         self.ss_y = 0  #      ""       y
         self.bg_scroll_x = 0
@@ -229,11 +248,10 @@ class Game:
             self.clock.tick(self.FPS)
 
             # menú principal
-            if not self.start_game or not self.player.alive:
+            if not self.start_game:
+                self.load()
                 self.screen.blit(self.menu_img, (-5,0))
-
                 if self.start_button.draw(self.screen):
-                    self.load()
                     self.start_game = True
                 if self.exit_button.draw(self.screen):
                     run = False
@@ -243,36 +261,53 @@ class Game:
                 self.screen.blit(self.menu_img, (-5,0))
                 if self.continue_button.draw(self.screen):
                     self.pause_game = False
-                if self.exit_button.draw(self.screen):
-                    run = False
+                if self.go_back_button.draw(self.screen):
+                    self.start_game = False
 
             # levelup
             elif self.player.leveling_up and not self.won:
                 self.screen.fill(self.BG)
+                self.screen.blit(self.levelup_img, (0,0))
+
                 dmgtext = self.font.render(
-                    f"Damage : {self.player.damage}", True, (255, 255, 255), (0, 0, 0)
+                    f"{self.player.damage}", True, (0, 0, 0)
                 )
                 speedtext = self.font.render(
-                    f"Shooting Cooldown : {self.player.shooting_cd}",
-                    True,
-                    (255, 255, 255),
-                    (0, 0, 0),
+                    f"{self.player.shooting_cd}", True, (0, 0, 0),
                 )
+
                 dmgrect = dmgtext.get_rect()
                 speedrect = speedtext.get_rect()
-                dmgrect.center = (self.SCREEN_WIDTH // 6, self.SCREEN_HEIGHT // 3)
-                speedrect.center = (self.SCREEN_WIDTH // 6, self.SCREEN_HEIGHT // 4)
+
+                dmgrect.center = (self.SCREEN_WIDTH * 0.825 , self.SCREEN_HEIGHT * 0.38)
+                speedrect.center = (self.SCREEN_WIDTH * 0.825 , self.SCREEN_HEIGHT * 0.75)
+
                 self.screen.blit(dmgtext, dmgrect)
                 self.screen.blit(speedtext, speedrect)
+
                 if self.damage_button.draw(self.screen):
                     self.player.damage += 5
                     self.player.leveling_up = False
+
                 elif self.shooting_cd_button.draw(self.screen):
                     self.player.shooting_cd -= 30
                     self.player.leveling_up = False
 
             elif self.won:
-                self.screen.fill((255, 255, 255))
+                self.screen.blit(self.won_img, (-5,0))
+                if self.play_again_button.draw(self.screen):
+                    self.load()
+                    self.start_game = True
+                if self.go_back_button.draw(self.screen):
+                    self.start_game = False
+
+            elif not self.player.alive:
+                self.screen.blit(self.lost_img, (-5,0))
+                if self.play_again_button.draw(self.screen):
+                    self.load()
+                    self.start_game = True
+                if self.go_back_button.draw(self.screen):
+                    self.start_game = False
 
             else:
                 self.increase_difficulty()

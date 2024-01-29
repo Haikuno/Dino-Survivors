@@ -68,8 +68,10 @@ class Mob(pygame.sprite.Sprite):
             self.hp = 0
             self.alive = False
             self.speed = 0
-            if self.char_type != "player":
-                XPOrb(self.game, self.rect.x, self.rect.y)
+            if self.char_type == "enemy":
+                XPOrb(self.game, self.rect.x, self.rect.y, self.game.xporb_img, self.game.xporb_value)
+            elif self.char_type == "strongie":
+                XPOrb(self.game, self.rect.x, self.rect.y, self.game.xporb2_img, self.game.xporb2_value)
             self.kill()
 
     def update(self, screen):

@@ -2,12 +2,12 @@ from pickup import Pickup
 import pygame
 
 class XPOrb(Pickup):
-    def __init__(self, game, x, y):
-        image = pygame.image.load(f"img/icons/xp.png").convert_alpha()
+    def __init__(self, game, x, y, image, value):
         super().__init__(game, image, x, y)
+        self.value = value
 
     def pickup(self):
-        self.game.player.xp += 20
+        self.game.player.xp += self.value
         self.kill()
 
     def update(self):

@@ -10,16 +10,18 @@ class Bullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.target = target
-        self.angle = math.atan2(target[1] - self.rect.y, target[0] - self.rect.x)
+
+        self.angle = math.atan2(target[1] - self.rect.y, target[0] - self.rect.x) # Estas operaciones matematicas son necesarias para garantizar una correcta trayectoria
         self.rotation = int(self.angle * 180 / math.pi)
         self.dx = math.cos(self.angle) * self.speed
         self.dy = math.sin(self.angle) * self.speed
+
         self.damage = damage
         self.groups = game.all_sprites, game.bullet_group
         pygame.sprite.Sprite.__init__(self, self.groups)
 
     def update(self):
-        self.rect.x += self.dx + self.game.ss_x
+        self.rect.x += self.dx + self.game.ss_x # Mover la bala teniendo en cuenta el screen_scroll
         self.rect.y += self.dy + self.game.ss_y
 
         # si salio de la pantalla
@@ -40,6 +42,7 @@ class Bullet(pygame.sprite.Sprite):
                 if enemy.alive:
                     enemy.hp -= self.damage
                     self.kill()
+
         # si choca contra una pared
         if pygame.sprite.spritecollide(self, self.game.wall_group, False):
             self.kill()

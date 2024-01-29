@@ -2,9 +2,6 @@ from mob import Mob
 import pygame
 import math
 
-
-#TODO: volver a jugar, volver al menu cuando perdes/ganas
-
 class Enemy(Mob):
     def __init__(self, char_type, x, y, scale, speed, animation_types, groups, game):
         super().__init__(char_type, x, y, scale, speed, animation_types, groups, game)
@@ -20,7 +17,8 @@ class Enemy(Mob):
     def update(self, game):
         super().update(game.screen)
         self.target = game.player.rect.center
-        self.angle = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x)
+
+        self.angle = math.atan2(self.target[1] - self.rect.y, self.target[0] - self.rect.x) # Estas operaciones matematicas son necesarias para garantizar una correcta trayectoria
         self.rotation = int(self.angle * 180 / math.pi)
         self.dx = math.cos(self.angle) * self.speed
         self.dy = math.sin(self.angle) * self.speed
