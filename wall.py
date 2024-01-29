@@ -11,9 +11,7 @@ class Wall(pygame.sprite.Sprite):
         self.y = y * game.TILESIZE
         self.width = game.TILESIZE
         self.height = game.TILESIZE
-        img = pygame.image.load(f'img/icons/grass2.png').convert_alpha()
-        self.image = pygame.transform.scale(img, (game.TILESIZE, game.TILESIZE))
-        self.rect = self.image.get_rect()
+        self.rect = pygame.Rect(32,32,32,86)
         self.rect.x = self.x
         self.rect.y = self.y
         game.wall_coords.append(self.rect.center)

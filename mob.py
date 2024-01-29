@@ -27,10 +27,11 @@ class Mob(pygame.sprite.Sprite):
 
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f"img/{self.char_type}/{animation}"))
+            dir = self.game.resource_path(f"img/{self.char_type}/{animation}")
+            num_of_frames = len(os.listdir(dir))
             for i in range(num_of_frames):
                 img = pygame.image.load(
-                    f"img/{self.char_type}/{animation}/{i}.png"
+                    f"{dir}/{i}.png"
                 ).convert_alpha()
                 img = pygame.transform.scale(
                     img, (img.get_width() * scale, img.get_height() * scale)

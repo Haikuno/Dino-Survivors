@@ -1,7 +1,8 @@
+import os
 import random
+import sys
 import time
 import pygame
-from os import path
 from button import Button
 from enemy import Enemy
 from player import Player
@@ -10,6 +11,13 @@ from map import Map
 
 
 class Game:
+    def resource_path(self, relative_path): # Necesario para poder compilar el juego en un solo archivo
+        try:
+            base_path = sys._MEIPASS
+        except Exception:
+            base_path = os.path.abspath(".")
+
+        return os.path.join(base_path, relative_path)
     def __init__(self):
         pygame.init()
 
@@ -21,26 +29,27 @@ class Game:
         pygame.display.set_caption("Dino Survivors")
 
         # imagenes
-        self.xporb_img = pygame.image.load(f"img/icons/xp.png").convert_alpha()
-        self.xporb2_img = pygame.image.load(f"img/icons/xp2.png").convert_alpha()
-        self.bullet_img = pygame.image.load("img/icons/bullet.png").convert_alpha()
-        self.shooting_cd_img = pygame.image.load("img/buttons/cadencia.png").convert_alpha()
-        self.start_img = pygame.image.load("img/buttons/empezar.png").convert_alpha()
-        self.continue_img = pygame.image.load("img/buttons/continuar.png").convert_alpha()
-        self.damage_img = pygame.image.load("img/buttons/daño.png").convert_alpha()
-        self.menu_img = pygame.image.load("img/buttons/fondo.png").convert_alpha()
-        self.menu_img = pygame.transform.scale(self.menu_img, (self.menu_img.get_width() * 1.15, self.menu_img.get_height() * 1.15))
-        self.won_img = pygame.image.load("img/buttons/ganaste.png").convert_alpha()
+        self.xporb_img = pygame.image.load(self.resource_path("img/icons/xp.png")).convert_alpha()
+        self.xporb2_img = pygame.image.load(self.resource_path("img/icons/xp2.png")).convert_alpha()
+        self.bullet_img = pygame.image.load(self.resource_path("img/icons/bullet.png")).convert_alpha()
+
+        self.shooting_cd_img = pygame.image.load(self.resource_path("img/buttons/cadencia.png")).convert_alpha()
+        self.continue_img = pygame.image.load(self.resource_path("img/buttons/continuar.png")).convert_alpha()
+        self.damage_img = pygame.image.load(self.resource_path("img/buttons/daño.png")).convert_alpha()
+        self.start_img = pygame.image.load(self.resource_path("img/buttons/empezar.png")).convert_alpha()
+        self.main_menu_img = pygame.image.load(self.resource_path("img/menus/fondo.png")).convert_alpha()
+        self.main_menu_img = pygame.transform.scale(self.main_menu_img, (self.main_menu_img.get_width() * 1.15, self.main_menu_img.get_height() * 1.15))
+        self.won_img = pygame.image.load(self.resource_path("img/menus/ganaste.png")).convert_alpha()
         self.won_img = pygame.transform.scale(self.won_img, (self.won_img.get_width() * 1.15, self.won_img.get_height() * 1.15))
-        self.levelup_img = pygame.image.load("img/buttons/levelup.png").convert_alpha()
+        self.levelup_img = pygame.image.load(self.resource_path("img/menus/levelup.png")).convert_alpha()
         self.levelup_img = pygame.transform.scale(self.levelup_img, (self.levelup_img.get_width() * 1.15, self.levelup_img.get_height() * 1.15))
-        self.map_img = pygame.image.load("img/map/map.png").convert_alpha()
+        self.map_img = pygame.image.load(self.resource_path("img/map/map.png")).convert_alpha()
         self.map_img = pygame.transform.scale(self.map_img, (self.map_img.get_width() * 4, self.map_img.get_height() * 4))
-        self.lost_img = pygame.image.load("img/buttons/perdiste.png").convert_alpha()
+        self.lost_img = pygame.image.load(self.resource_path("img/menus/perdiste.png")).convert_alpha()
         self.lost_img = pygame.transform.scale(self.lost_img, (self.lost_img.get_width() * 1.15, self.lost_img.get_height() * 1.15))
-        self.exit_img = pygame.image.load("img/buttons/salir.png").convert_alpha()
-        self.play_again_img = pygame.image.load("img/buttons/volver a jugar.png").convert_alpha()
-        self.go_back_img = pygame.image.load("img/buttons/volver al menu.png").convert_alpha()
+        self.exit_img = pygame.image.load(self.resource_path("img/buttons/salir.png")).convert_alpha()
+        self.play_again_img = pygame.image.load(self.resource_path("img/buttons/volver a jugar.png")).convert_alpha()
+        self.go_back_img = pygame.image.load(self.resource_path("img/buttons/volver al menu.png")).convert_alpha()
 
 
         # fuente
@@ -150,8 +159,7 @@ class Game:
         # map
         self.TILESIZE = 64
         self.wall_coords = []
-        game_dir = path.dirname(__file__)
-        self.map = Map(path.join(game_dir, "map.txt"))
+        self.map = Map()
 
         X_OFFSET = -30
         Y_OFFSET = -10
@@ -250,7 +258,7 @@ class Game:
             # menú principal
             if not self.start_game:
                 self.load()
-                self.screen.blit(self.menu_img, (-5,0))
+                self.screen.blit(self.main_menu_img, (-5,0))
                 if self.start_button.draw(self.screen):
                     self.start_game = True
                 if self.exit_button.draw(self.screen):
@@ -258,7 +266,7 @@ class Game:
 
             # pausa
             elif self.pause_game and not self.won:
-                self.screen.blit(self.menu_img, (-5,0))
+                self.screen.blit(self.main_menu_img, (-5,0))
                 if self.continue_button.draw(self.screen):
                     self.pause_game = False
                 if self.go_back_button.draw(self.screen):
