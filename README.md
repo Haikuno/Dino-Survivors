@@ -1,3 +1,5 @@
+Este juego fue hecho en menos de 48 horas como parte de un reto
+
 El objetivo del juego es sobrevivir 5 minutos
 
 El jugador dispara automáticamente al enemigo más cercano.
